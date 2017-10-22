@@ -1,21 +1,48 @@
 import React, { Component } from 'react';
 import logo from './logo.svg';
 import './App.css';
+import { BehaviorSubject } from 'rxjs/BehaviorSubject';
+import { scan } from 'rxjs/operators';
+
+const action$ = new BehaviorSubject({type: 'INIT'});
+const state$ = action$.pipe(
+  scan((state, action) => {
+    switch (action.type) {
+      case 'INC': 
+        return {
+          output: state.output + 1
+        };
+      case 'DEC': 
+      return {
+        output: state.output - 1
+      };
+      default: 
+        return state;
+    }
+  }, {output:0})
+);
 
 class App extends Component {
+  
+  componentDidMount() {
+    this.subscription = state$.subscribe((state) => this.setState(state))
+  };
+
+  componentWillUnmount() {
+    this.subscription.unsubscribe();
+  }
+
   constructor() {
     super();
     this.state = {output:0};
   };
 
   increment() {
-    const { output } = this.state;
-    this.setState({output: output + 1})
+    action$.next({type:'INC'})
   }
 
   decrement() {
-    const { output } = this.state;
-    this.setState({output: output - 1})
+    action$.next({type:'DEC'})
   }
   
   render() {
