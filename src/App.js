@@ -2,9 +2,31 @@ import React, { Component } from 'react';
 import logo from './logo.svg';
 import './App.css';
 import { BehaviorSubject } from 'rxjs/BehaviorSubject';
-import { scan } from 'rxjs/operators';
+import { map, scan, filter, switchMap } from 'rxjs/operators';
+import { interval } from 'rxjs/observable/interval';
+
+const clickEpic = (action$) => action$.pipe(
+  filter(
+    action => action.type === 'INC'
+  ),
+  filter((_, i) => i % 3 === 0),
+  map(() => ({ type: 'START_INTERVAL' }))
+)
+
+const intervalEpic = (action$) => action$.pipe(
+  filter(
+    action => action.type === 'START_INTERVAL'
+  ),
+  switchMap(() => 
+    interval(500).pipe(
+      map(() => ({type: 'INC'}))
+    )
+ )
+);
+
 
 const action$ = new BehaviorSubject({type: 'INIT'});
+
 const state$ = action$.pipe(
   scan((state, action) => {
     switch (action.type) {
@@ -19,8 +41,11 @@ const state$ = action$.pipe(
       default: 
         return state;
     }
-  }, {output:0})
+  }, {output:0}),
 );
+
+clickEpic(action$).subscribe(action$);
+intervalEpic(action$).subscribe(action$);
 
 class App extends Component {
   
@@ -44,7 +69,7 @@ class App extends Component {
   decrement() {
     action$.next({type:'DEC'})
   }
-  
+
   render() {
     return (
       <div className="App">
